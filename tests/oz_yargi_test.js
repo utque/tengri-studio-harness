@@ -68,22 +68,37 @@ assert y["karar"] == "onay"
 y2 = mod.yargi_deterministik(a, ["02-tech.md"], ["uyarı"], 2)
 assert y2["karar"] == "revizyon"
 mod.sema_dogrula(y, mod.YARGI_SEMA, "y")
+# Cursor / Claude komut satırı
+mod.STUDIO_AI = "cursor"
+cmd, _, motor = mod.ajan_komut("p", mod.KOK, mod.RAPOR_SEMA, salt_okunur=False)
+assert motor == "cursor" and "--force" in cmd and "--workspace" in cmd
+cmd2, _, _ = mod.ajan_komut("p", mod.KOK, mod.RAPOR_SEMA, salt_okunur=True)
+assert "--mode" in cmd2 and "ask" in cmd2 and "--force" not in cmd2
+ornek = {"adim": "faz1a", "yazilan": ["01-market.md"], "kanit": [], "iddialar": [], "durus": None}
+fence = chr(96)*3
+metin = "x\\n" + fence + "json\\n" + json.dumps(ornek) + "\\n" + fence
+assert mod.json_nesne_cikar(metin, mod.RAPOR_SEMA, "t")["adim"] == "faz1a"
 print("helpers-ok")
 `;
   const r = spawnSync("python3", ["-c", code], {
     encoding: "utf8",
-    env: { ...process.env, STUDIO_YARGI_MOD: "deterministik" },
+    env: { ...process.env, STUDIO_YARGI_MOD: "deterministik", STUDIO_AI: "claude" },
     timeout: 60000,
   });
   ok("helpers", r.status === 0 && (r.stdout || "").includes("helpers-ok"), (r.stderr || r.stdout || "").slice(-800));
 }
 
-console.log("== 4) README / CLI bayrakları ==");
+console.log("== 4) Cursor AI seçimi (CLI env) ==");
+{
+  const r = sh(["--kok", WISP, "--agac"], { STUDIO_AI: "cursor" });
+  ok("cursor ile agac", r.status === 0, `status=${r.status}`);
+}
+
+console.log("== 5) README / CLI bayrakları ==");
 {
   const r = sh(["--kok", WISP, "--agac"]);
   ok("süreç ayakta", r.status === 0);
   const helpish = sh(["--kok", WISP, "--dogrula", "charter"]);
-  // charter insan adımı; dogrula ajan adımı ister — beklenen DUR veya geçiş
   ok("cli yanıt verdi", helpish.status === 0 || helpish.status === 1, `status=${helpish.status}`);
 }
 

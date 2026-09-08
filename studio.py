@@ -24,8 +24,10 @@ Limitler: STUDIO_BUTCE=10 STUDIO_SURE=1800 STUDIO_PARTI=20  STUDIO_PARALEL=4
           STUDIO_NICE=10 (ajan ve dış komutların öncelik düşürmesi)
           STUDIO_YUK=<çekirdek×1.5> (bu load average'ın üstünde adım BAŞLATILMAZ, beklenir)
           STUDIO_YUK_BEKLE=900 (yük düşmezse bu kadar saniye sonra DUR)
+          STUDIO_AI=claude|cursor  (ajan motoru; cursor = Cursor CLI `agent`)
+          STUDIO_MODEL=  (cursor için --model, örn. sonnet-4 / gpt-5)
           STUDIO_YARGI=10 (yazılım adımı öz-yargı seviyesi)
-          STUDIO_YARGI_MOD=claude|deterministik  (testte deterministik)
+          STUDIO_YARGI_MOD=ai|deterministik|claude|cursor  (ai = STUDIO_AI; testte deterministik)
           STUDIO_DEMO=playtest-1  (oynanır demo kapısı; buraya kadar otonom yazılım)
 """
 import concurrent.futures
@@ -110,8 +112,10 @@ YUK_BEKLE = int(os.environ.get("STUDIO_YUK_BEKLE", "900"))
 REVIZYON_TAVAN = 3
 DILIM_DENEME = 3
 YARGI_SEVIYE = int(os.environ.get("STUDIO_YARGI", "10"))
-YARGI_MOD = os.environ.get("STUDIO_YARGI_MOD", "claude")  # claude | deterministik
+YARGI_MOD = os.environ.get("STUDIO_YARGI_MOD", "ai")  # ai | deterministik | claude | cursor
 DEMO_ADIM = os.environ.get("STUDIO_DEMO", "playtest-1")  # oynanır demo: buraya kadar yazılım otonom
+STUDIO_AI = os.environ.get("STUDIO_AI", "claude").strip().lower()  # claude | cursor
+STUDIO_MODEL = os.environ.get("STUDIO_MODEL", "").strip()  # cursor --model
 
 # İnsan kapısı türleri — yazılım sorusu ASLA kullanıcıya gitmez.
 INSAN_OYUN_TIPI = "oyun_tipi"
@@ -1253,6 +1257,137 @@ def adimlari_uret(durum):
 
 
 # ================================================================== koşum
+# Ajan motoru: STUDIO_AI=claude|cursor. Cursor CLI: `agent` / `cursor-agent`.
+
+def ai_adi():
+    """Etkin motor adı (yargı modu claude/cursor ise onu kullanır)."""
+    if YARGI_MOD in ("claude", "cursor"):
+        return YARGI_MOD
+    return STUDIO_AI if STUDIO_AI in ("claude", "cursor") else "claude"
+
+
+def ai_bin():
+    ad = ai_adi()
+    if ad == "cursor":
+        for aday in ("agent", "cursor-agent"):
+            if shutil.which(aday):
+                return aday
+        raise Dur("STUDIO_AI=cursor ama `agent`/`cursor-agent` PATH'te yok. "
+                  "https://cursor.com/docs/cli — `curl https://cursor.com/install -fsS | bash`")
+    if not shutil.which("claude"):
+        raise Dur("STUDIO_AI=claude ama `claude` PATH'te yok.")
+    return "claude"
+
+
+def json_nesne_cikar(metin, sema, ad):
+    """Serbest metinden şemaya uyan son JSON nesnesini çıkar (Cursor CLI şema zorlamaz)."""
+    if not metin or not metin.strip():
+        raise RaporYok(f"{ad}: boş yanıt, JSON yok.")
+    adaylar = []
+    # ```json ... ``` çitleri
+    for m in re.finditer(r"```(?:json)?\s*(\{.*?\})\s*```", metin, re.S):
+        adaylar.append(m.group(1))
+    # dengeli { ... } tarama (sondan)
+    yigin, bas = 0, None
+    for i, ch in enumerate(metin):
+        if ch == "{":
+            if yigin == 0:
+                bas = i
+            yigin += 1
+        elif ch == "}" and yigin:
+            yigin -= 1
+            if yigin == 0 and bas is not None:
+                adaylar.append(metin[bas:i + 1])
+                bas = None
+    hatalar = []
+    for ham in reversed(adaylar):
+        try:
+            veri = json.loads(ham)
+        except json.JSONDecodeError as e:
+            hatalar.append(str(e))
+            continue
+        try:
+            sema_dogrula(veri, sema, ad)
+            return veri
+        except Dur as e:
+            hatalar.append(str(e))
+            continue
+    raise RaporYok(f"{ad}: şemalı JSON çıkarılamadı ({len(adaylar)} aday). "
+                   f"Son hata: {(hatalar[-1] if hatalar else 'yok')[:200]}")
+
+
+def stream_json_zarf(stdout):
+    """Claude/Cursor stream-json: son type=result olayını döndür."""
+    zarf = None
+    for satir in (stdout or "").splitlines():
+        satir = satir.strip()
+        if not satir.startswith("{"):
+            continue
+        try:
+            olay = json.loads(satir)
+        except json.JSONDecodeError:
+            continue
+        if olay.get("type") == "result":
+            zarf = olay
+    return zarf
+
+
+def ajan_komut(prompt, kok, sema, butce=None, salt_okunur=False):
+    """Motor komut satırı + (gerekirse zenginleştirilmiş) prompt.
+    salt_okunur=True → Cursor `--mode ask` (yargıç; dosya yazmaz)."""
+    butce = butce if butce is not None else BUTCE
+    motor = ai_adi()
+    binary = ai_bin()
+    if motor == "cursor":
+        # Cursor --json-schema yok: şemayı prompt'a göm.
+        prompt = (f"{SISTEM_EK}\n\n{prompt}\n\n"
+                  "İŞ BİTİNCE: başka metin yazma. Yalnızca aşağıdaki JSON Schema'ya uyan "
+                  "tek bir JSON nesnesi döndür (istersen ```json çiti içinde):\n"
+                  f"{json.dumps(sema, ensure_ascii=False)}")
+        cmd = ["nice", "-n", str(NICE), binary, "-p", prompt,
+               "--output-format", "stream-json",
+               "--trust", "--workspace", str(kok)]
+        if salt_okunur:
+            cmd += ["--mode", "ask"]
+        else:
+            cmd += ["--force"]  # yazma + shell (parti/dilim)
+        if STUDIO_MODEL:
+            cmd += ["--model", STUDIO_MODEL]
+        return cmd, prompt, "cursor"
+    cmd = ["nice", "-n", str(NICE), binary, "-p", prompt,
+           "--permission-mode", IZIN, "--max-budget-usd", str(butce),
+           "--disallowedTools", *YASAK_ARACLAR, "--append-system-prompt", SISTEM_EK,
+           "--output-format", "stream-json", "--verbose",
+           "--json-schema", json.dumps(sema, ensure_ascii=False),
+           "--no-session-persistence"]
+    return cmd, prompt, "claude"
+
+
+
+def ajan_rapor_coz(zarf, sema, ad, motor):
+    """Result zarfından şemalı rapor çıkar."""
+    if zarf is None:
+        raise Dur(f"{ad}: {motor} 'result' zarfı döndürmedi. runlog/{ad}.log")
+    if zarf.get("is_error"):
+        raise Dur(f"{ad}: {motor} hata ({zarf.get('subtype') or zarf.get('result', '')!s}). runlog/{ad}.log")
+    if zarf.get("subtype") and zarf.get("subtype") not in ("success",):
+        # Claude: error_max_budget_usd vb.
+        if zarf.get("subtype") == "error_max_budget_usd":
+            raise Dur(f"{ad}: {BUTCE}$ bütçe tavanına takıldı. Adımı böl ya da STUDIO_BUTCE'yi büyüt.")
+        raise Dur(f"{ad}: {motor} hata ({zarf.get('subtype')}). runlog/{ad}.log")
+    if motor == "claude" and zarf.get("structured_output") is not None:
+        rapor = zarf["structured_output"]
+        sema_dogrula(rapor, sema, f"{ad} raporu")
+        return rapor
+    # Cursor (ve Claude structured_output yoksa): result metninden JSON
+    metin = zarf.get("result") or zarf.get("structured_output")
+    if isinstance(metin, dict):
+        sema_dogrula(metin, sema, f"{ad} raporu")
+        return metin
+    if not isinstance(metin, str):
+        raise RaporYok(f"{ad}: şemalı rapor yok — iş yapılmış olabilir, rapor eksik.")
+    return json_nesne_cikar(metin, sema, ad)
+
 
 def ajani_calistir(adim, ek, kok=None):
     """Ajanı koştur, dönüşü RAPOR_SEMA'ya uyan tek JSON nesnesi olarak al."""
@@ -1261,12 +1396,9 @@ def ajani_calistir(adim, ek, kok=None):
     RUNLOG.mkdir(exist_ok=True)
     log = RUNLOG / f"{adim.ad}.log"
     yuk_bekle(adim.ad)
-    cmd = ["nice", "-n", str(NICE), "claude", "-p", prompt, "--permission-mode", IZIN, "--max-budget-usd", BUTCE,
-           "--disallowedTools", *YASAK_ARACLAR, "--append-system-prompt", SISTEM_EK,
-           "--output-format", "stream-json", "--verbose", "--json-schema", json.dumps(RAPOR_SEMA, ensure_ascii=False),
-           "--no-session-persistence"]  # stream-json: zaman aşımında bile kısmi olay günlüğü kalır
-    print(f"\n\033[1m▶ {adim.ad}\033[0m  (≤{BUTCE}$, ≤{SURE}s, nice {NICE}, yük {yuk():.0f}/{YUK_TAVAN:.0f}, "
-          f"{kok.name}/, log: runlog/{adim.ad}.log)")
+    cmd, prompt, motor = ajan_komut(prompt, kok, RAPOR_SEMA)
+    print(f"\n\033[1m▶ {adim.ad}\033[0m  [{motor}] (≤{BUTCE}$, ≤{SURE}s, nice {NICE}, "
+          f"yük {yuk():.0f}/{YUK_TAVAN:.0f}, {kok.name}/, log: runlog/{adim.ad}.log)")
     try:
         p = subprocess.run(cmd, cwd=kok, capture_output=True, text=True, timeout=SURE)
     except subprocess.TimeoutExpired as e:
@@ -1276,46 +1408,30 @@ def ajani_calistir(adim, ek, kok=None):
             f.write(metin(e.stdout) + metin(e.stderr))
         raise Dur(f"{adim.ad}: {SURE}s süre tavanına takıldı. Adımı böl ya da STUDIO_SURE'yi büyüt "
                   f"(yarım kalan iş dalda saklanır, sonraki koşu kaldığı yerden devam eder).")
-    # Log, ajanın dokunamayacağı bir kanıttır: anlık görüntü karşılaştırmasından SONRA yazılır
-    # (rapor_denetle içinde); ajan runlog/*.log'a yazarsa kapsam denetimi yakalar.
     adim.son_cikti = getattr(adim, "son_cikti", "") + p.stdout + p.stderr
 
-    def logu_yaz():  # hata yollarında kanıt kaybolmasın
+    def logu_yaz():
         log.open("a", encoding="utf-8").write(adim.son_cikti)
         adim.son_cikti = ""
     if p.returncode != 0:
         logu_yaz()
-        raise Dur(f"{adim.ad}: claude çıkış kodu {p.returncode}. runlog/{adim.ad}.log")
-    zarf = None
-    for satir in p.stdout.splitlines():  # stream-json: satır başına bir olay; sonuncu 'result' zarftır
-        satir = satir.strip()
-        if satir.startswith("{"):
-            try:
-                olay = json.loads(satir)
-            except json.JSONDecodeError:
-                continue
-            if olay.get("type") == "result":
-                zarf = olay
+        raise Dur(f"{adim.ad}: {motor} çıkış kodu {p.returncode}. runlog/{adim.ad}.log")
+    zarf = stream_json_zarf(p.stdout)
     if zarf is None:
         logu_yaz()
-        raise Dur(f"{adim.ad}: claude 'result' zarfı döndürmedi. runlog/{adim.ad}.log")
+        raise Dur(f"{adim.ad}: {motor} 'result' zarfı döndürmedi. runlog/{adim.ad}.log")
     maliyet = float(zarf.get("total_cost_usd") or 0)
     if not hasattr(adim, "maliyet"):
         adim.maliyet = durum_oku().get("maliyet", {}).get(adim.ad, 0)
-    adim.maliyet += maliyet  # durum.json'a rapor_denetle yazar (anlık görüntüden sonra)
-    print(f"   {zarf.get('num_turns', '?')} tur, {maliyet:.2f}$ (bu adımda toplam {adim.maliyet:.2f}$)")
-    if zarf.get("subtype") == "error_max_budget_usd":
+    adim.maliyet += maliyet
+    print(f"   {zarf.get('num_turns', '?')} tur, {maliyet:.2f}$ (bu adımda toplam {adim.maliyet:.2f}$) [{motor}]")
+    try:
+        rapor = ajan_rapor_coz(zarf, RAPOR_SEMA, adim.ad, motor)
+    except (Dur, RaporYok):
         logu_yaz()
-        raise Dur(f"{adim.ad}: {BUTCE}$ bütçe tavanına takıldı. Adımı böl ya da STUDIO_BUTCE'yi büyüt.")
-    if zarf.get("is_error") or zarf.get("subtype") != "success":
-        logu_yaz()
-        raise Dur(f"{adim.ad}: claude hata ({zarf.get('subtype')}). runlog/{adim.ad}.log")
-    rapor = zarf.get("structured_output")
-    if rapor is None:
-        logu_yaz()
-        raise RaporYok(f"{adim.ad}: şemalı rapor yok (structured_output boş) — iş yapılmış olabilir, rapor eksik.")
-    sema_dogrula(rapor, RAPOR_SEMA, f"{adim.ad} raporu")
+        raise
     return rapor
+
 
 
 KANIT_META = re.compile(r"[;|&<>$`\n\\]|\(\)|\{|\}")
@@ -1827,8 +1943,8 @@ def yargi_deterministik(adim, degisen, uyarilar, seviye):
     }
 
 
-def yargi_claude(adim, degisen, uyarilar, seviye):
-    """Ayrı yargıç oturumu: yapılan / gereken / doğru / yanlış / karar."""
+def yargi_ai(adim, degisen, uyarilar, seviye):
+    """Ayrı yargıç oturumu (STUDIO_AI / YARGI_MOD motoruyla)."""
     ozet = []
     for y in degisen[:30]:
         try:
@@ -1848,34 +1964,27 @@ def yargi_claude(adim, degisen, uyarilar, seviye):
         "Skor ≥ 8 ve yapilmasi_gereken boşsa onay; aksi halde revizyon."
     )
     yuk_bekle(f"{adim.ad}-yargi")
-    cmd = ["nice", "-n", str(NICE), "claude", "-p", prompt, "--permission-mode", IZIN,
-           "--max-budget-usd", str(min(float(BUTCE), 3.0)),
-           "--disallowedTools", *YASAK_ARACLAR,
-           "--append-system-prompt",
-           "Türkçe yaz. Yalnızca şemadaki JSON'u döndür. Kod yazma, dosya değiştirme.",
-           "--output-format", "stream-json", "--verbose",
-           "--json-schema", json.dumps(YARGI_SEMA, ensure_ascii=False),
-           "--no-session-persistence"]
+    cmd, prompt, motor = ajan_komut(prompt, KOK, YARGI_SEMA, butce=min(float(BUTCE), 3.0), salt_okunur=True)
     try:
         p = subprocess.run(cmd, cwd=KOK, capture_output=True, text=True, timeout=min(SURE, 600))
     except subprocess.TimeoutExpired:
         return yargi_deterministik(adim, degisen, uyarilar + ["yargı zaman aşımı"], seviye)
-    zarf = None
-    for satir in (p.stdout or "").splitlines():
-        satir = satir.strip()
-        if satir.startswith("{"):
-            try:
-                olay = json.loads(satir)
-            except json.JSONDecodeError:
-                continue
-            if olay.get("type") == "result":
-                zarf = olay
-    if not zarf or zarf.get("subtype") != "success" or not zarf.get("structured_output"):
-        return yargi_deterministik(adim, degisen, uyarilar + ["yargıç raporu yok"], seviye)
-    yargi = zarf["structured_output"]
+    zarf = stream_json_zarf(p.stdout)
+    if p.returncode != 0 or zarf is None:
+        return yargi_deterministik(adim, degisen, uyarilar + [f"yargıç raporu yok ({motor})"], seviye)
+    try:
+        yargi = ajan_rapor_coz(zarf, YARGI_SEMA, f"{adim.ad}-yargi", motor)
+    except (Dur, RaporYok):
+        return yargi_deterministik(adim, degisen, uyarilar + ["yargıç JSON çıkmadı"], seviye)
     yargi["seviye"] = seviye
     sema_dogrula(yargi, YARGI_SEMA, f"{adim.ad} yargı")
     return yargi
+
+
+def yargi_claude(adim, degisen, uyarilar, seviye):
+    """Geriye dönük takma ad."""
+    return yargi_ai(adim, degisen, uyarilar, seviye)
+
 
 
 def oz_yargi(adim, degisen, uyarilar, seviye):
@@ -1883,7 +1992,7 @@ def oz_yargi(adim, degisen, uyarilar, seviye):
         yargi = yargi_deterministik(adim, degisen, uyarilar, seviye)
     else:
         try:
-            yargi = yargi_claude(adim, degisen, uyarilar, seviye)
+            yargi = yargi_ai(adim, degisen, uyarilar, seviye)
         except Dur:
             yargi = yargi_deterministik(adim, degisen, uyarilar + ["yargıç hata → deterministik"], seviye)
     yargi_raporu_yaz(adim, seviye, yargi)
@@ -2286,6 +2395,22 @@ def test():
     for beklenen in ("charter", "faz1a", "kisa-liste", "faz1b", "secilen", "faz2", "ornek-3a", "faz3a", "ornek-3c", "faz3c", "faz4a",
                      "faz4b", "varlik-onay", "hazirla", "dilim-spec", "yayin", "steam"):
         assert beklenen in adlar, (beklenen, adlar)
+    # AI motor seçimi (claude | cursor)
+    assert ai_adi() in ("claude", "cursor")
+    ornek = {"adim": "faz1a", "yazilan": ["01-market.md"], "kanit": [], "iddialar": [], "durus": None}
+    assert json_nesne_cikar("ön\n```json\n" + __import__("json").dumps(ornek) + "\n```\nson", RAPOR_SEMA, "t")["adim"] == "faz1a"
+    zarf = stream_json_zarf('{"type":"x"}\n{"type":"result","subtype":"success","is_error":false,"result":"{}"}\n')
+    assert zarf and zarf["type"] == "result"
+    global STUDIO_AI
+    _ai0 = STUDIO_AI
+    STUDIO_AI = "cursor"
+    try:
+        cmd, _, motor = ajan_komut("p", KOK, RAPOR_SEMA, salt_okunur=False)
+        assert motor == "cursor" and "--force" in cmd and "--trust" in cmd and "--workspace" in cmd
+        cmd2, _, _ = ajan_komut("p", KOK, RAPOR_SEMA, salt_okunur=True)
+        assert "--mode" in cmd2 and "ask" in cmd2 and "--force" not in cmd2
+    finally:
+        STUDIO_AI = _ai0
     # öz-yargı / soru sınıflandırma
     assert soru_sinifi("test kırmızı, offset 16px kaydır", "layout") == YAZILIM
     assert soru_sinifi("hangi konsepti seçelim?", "kısa liste") == INSAN_OYUN_TIPI
