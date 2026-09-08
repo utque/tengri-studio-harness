@@ -37,6 +37,12 @@ npm test
 | Asset | stil, parti kontakt, `--onayla taslak` | Görsel/ses onayla |
 | Demo | `playtest-1` | Build’i oyna, not yaz |
 
+## Playtest QA
+
+Build/run sonrası ajan `playtest-qa-checklist.md` ile sonsuz SS döngüsü koşar
+(ikon-first, orantı/şişmiş kutu, layout, feedback). Cursor workspace’te
+`.cursor/hooks.json` `godot` komutundan sonra bu döngüyü otomatik devam ettirir.
+
 ## Yazılım öz-yargı
 
 Her yazılım adımından sonra: `runlog/<adim>-yargi-NN.md` (yapılan / gereken / doğru / yanlış / skor).  

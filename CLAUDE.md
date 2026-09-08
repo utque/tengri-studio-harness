@@ -56,6 +56,13 @@ yalnızca **oyun tipi** ve **asset (varlık)** soruları gider.
    metin alanı açmadan önce "bu ikonla çözülür mü?" diye sor; çözülüyorsa
    metin ekleme.
 
+10. **Playtest QA döngüsü — build/run sonrası zorunlu.** Her oyun build veya
+    run edildiğinde `playtest-qa-checklist.md` maddeleri screenshot ile
+    kontrol edilir; kırmızı kalan her şey düzeltilir; temizlenene kadar
+    çalıştır→SS→checklist→düzelt tekrarı sürer. Özellikle orantı: ikon-first
+    sonrası şişmiş panel/düğme (`custom_minimum_size`) kabul edilmez.
+    Liste: stüdyoda `playtest-qa-checklist.md` (oyun kökünde aynı dosya).
+
 ## Öz-yargı (studio)
 
 Yazılım adımlarında kullanıcı "onaylıyor musun?" demez. `studio.py` en fazla 10

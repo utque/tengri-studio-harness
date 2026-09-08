@@ -1,0 +1,33 @@
+---
+description: Build/run sonrası sonsuz playtest QA döngüsü — tüm oyunlar
+alwaysApply: true
+---
+
+# Playtest QA döngüsü
+
+Her oyun için kanonik liste: `tengri-studio/playtest-qa-checklist.md`
+(oyun kökünde de `playtest-qa-checklist.md`).
+
+## Ne zaman
+
+- UI / HUD / menü değişikliği
+- `godot` ile build, run veya SS script
+- Kullanıcı “oyna / SS / düzelt / döngü” dediğinde
+
+## Sonsuz döngü
+
+1. Çalıştır (pencereli)
+2. Screenshot al → **Read ile görselleri incele**
+3. Checklist’in **her** maddesini uygula (özellikle **B. Orantı**)
+4. Kırmızı → düzelt → 1’e dön
+5. Hepsi yeşil → çık; aksi halde erken bırakma
+
+## Kaçırma (geçmiş ders)
+
+İkon-first sonrası **eski büyük `custom_minimum_size` / panel boyutu** kalabilir.
+“Metin gitti” = geçmez; kutu içeriğe sığmalı, haritayı şişirmemeli.
+
+## Build & run hook
+
+`godot` komutu bitince QA pending işaretlenir; ajan durunca checklist
+follow-up ile devam eder. Temiz çıkışta state’e `"done": true` yaz.

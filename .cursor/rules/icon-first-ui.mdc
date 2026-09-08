@@ -1,0 +1,33 @@
+---
+description: Oyun UI'sında metin son çare; her şey önce ikonlarla anlatılır
+alwaysApply: true
+---
+
+# Icon-first UI
+
+Tengri Games stüdyosunda oyunlarda kullanıcıya görünen metin **çok az** olmalı.
+Her şey önce **ikon, sembol, renk ve animasyon** ile hallolur.
+
+## Kurallar
+
+- HUD, menü, envanter, buton, durum, ödül, uyarı → ikon-first
+- Cümle, etiket, ipucu paneli, buton yazısı varsayılan çözüm değildir
+- Metin yalnızca ikonun yetersiz kaldığı yerde (yasal, ayar açıklaması, hikâye)
+- Görünen her metin `03-strings.yaml` üzerinden gelir; kodda metin uydurma
+- Yeni metin alanı açmadan önce sor: "bu ikonla çözülür mü?" — çözülüyorsa ekleme
+
+## Örnekler
+
+```gdscript
+# ❌ BAD — butona açıklayıcı yazı
+btn_attack.text = "Saldır"
+
+# ✅ GOOD — ikon + kısa görsel geri bildirim
+btn_attack.icon = Assets.UI_ICON_ATTACK
+btn_attack.text = ""
+```
+
+```
+# ❌ BAD — HUD'da "Can: 3"
+# ✅ GOOD — 3 kalp ikonu
+```
