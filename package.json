@@ -1,0 +1,7 @@
+{
+  "name": "tengri-studio",
+  "private": true,
+  "scripts": {
+    "test": "node tests/oz_yargi_test.js"
+  }
+}
