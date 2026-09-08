@@ -1351,7 +1351,8 @@ def ajan_komut(prompt, kok, sema, butce=None, salt_okunur=False):
             cmd += ["--mode", "ask"]
         else:
             cmd += ["--force"]  # yazma + shell (parti/dilim)
-        if STUDIO_MODEL:
+        # Auto / boş → Cursor varsayılanı (Auto); aksi halde --model
+        if STUDIO_MODEL and STUDIO_MODEL.lower() not in ("auto", "default", "varsayilan"):
             cmd += ["--model", STUDIO_MODEL]
         return cmd, prompt, "cursor"
     cmd = ["nice", "-n", str(NICE), binary, "-p", prompt,
@@ -1360,6 +1361,9 @@ def ajan_komut(prompt, kok, sema, butce=None, salt_okunur=False):
            "--output-format", "stream-json", "--verbose",
            "--json-schema", json.dumps(sema, ensure_ascii=False),
            "--no-session-persistence"]
+    # Auto / boş model → CLI varsayılanı; aksi halde --model
+    if STUDIO_MODEL and STUDIO_MODEL.lower() not in ("auto", "default", "varsayilan"):
+        cmd += ["--model", STUDIO_MODEL]
     return cmd, prompt, "claude"
 
 
