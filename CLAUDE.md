@@ -47,6 +47,15 @@ yalnızca **oyun tipi** ve **asset (varlık)** soruları gider.
    her sayısal iddia (URL ya da `tahmin`), `durus` yalnız oyun tipi/asset sorusu
    varsa neden+soru (yazılım sorusu yasak).
 
+9. **Icon-first UI — metin son çare.** Oyunlarda kullanıcıya görünen metin
+   çok az olmalı. HUD, menü, envanter, buton, durum, ödül, uyarı: hepsi önce
+   ikon, sembol, renk ve animasyonla anlatılır. Cümle, etiket, ipucu paneli
+   veya buton yazısı varsayılan çözüm değildir. Metin yalnızca ikonun
+   yetersiz kaldığı yerde (yasal metin, ayar açıklaması, hikâye satırı) ve
+   `03-strings.yaml` üzerinden girer. GDD, UI spec, strings ve kodda yeni bir
+   metin alanı açmadan önce "bu ikonla çözülür mü?" diye sor; çözülüyorsa
+   metin ekleme.
+
 ## Öz-yargı (studio)
 
 Yazılım adımlarında kullanıcı "onaylıyor musun?" demez. `studio.py` en fazla 10
@@ -91,6 +100,8 @@ Oynanır demo (`playtest-1`) hazır olana kadar bu döngüyle ilerlenir.
 - Dosya yolu string'i yazma. Varlıklara `Assets.*`, metinlere `Strings.*`
   sabitleriyle eriş. Sabit yoksa varlık yok demektir: DUR ve sor.
 - Metin uydurma. Kullanıcıya görünen her metin `03-strings.yaml`'dan gelir.
+- UI'da Label/RichText ile açıklama yazma. Buton, slot, durum: `Assets.*`
+  ikon + kısa geri bildirim (renk, pulse, sfx). Strings yalnızca istisna.
 - Testi önce yaz, kırmızı olduğunu gör, sonra kodu yaz.
 - Yeni bağımlılık ekleme. Gerekliyse DUR ve sor.
 
