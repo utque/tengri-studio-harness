@@ -17,17 +17,26 @@ Her oyun için kanonik liste: `tengri-studio/playtest-qa-checklist.md`
 ## Sonsuz döngü
 
 1. Çalıştır (pencereli)
-2. Screenshot al → **Read ile görselleri incele**
-3. Checklist’in **her** maddesini uygula (özellikle **B. Orantı**)
+2. Screenshot al → **Read ile görselleri incele** (zorunlu set: splash, menü, shop, HUD, seçim, inşa/üret, zafer, yenilgi, **fraksiyon/bayrak ayrımı**)
+3. Checklist **A–J her madde** (özellikle **B. Orantı**, **H. Kabuk**, **I. Oynanabilirlik**, **J. Denge/fraksiyon**)
 4. Kırmızı → düzelt → 1’e dön
-5. Hepsi yeşil → çık; aksi halde erken bırakma
+5. Hepsi yeşil → `done`; aksi halde erken bırakma
+
+## Erken done yasak
+
+- “Yeterince iyi” / “çoğu yeşil” / “placeholder” ile `done: true` yazma
+- Headless yeşil ≠ checklist yeşil; ikisi de şart
+- Bilinen kaymış kale, hayalet menü, düşmansız demo = kırmızı; kapatma
 
 ## Kaçırma (geçmiş ders)
 
-İkon-first sonrası **eski büyük `custom_minimum_size` / panel boyutu** kalabilir.
-“Metin gitti” = geçmez; kutu içeriğe sığmalı, haritayı şişirmemeli.
+- İkon-first sonrası eski büyük `custom_minimum_size` / panel
+- Texture içinde gömülü boş buton şeritleri (ghost UI)
+- Bina atlasına gömülü arazi hex’i → “kale kaymış”
+- Yalnızca yürüyen adam senaryosu
+- **1 turda zafer** / aynı bayrak-renk / üretim kale altında görünmez
 
 ## Build & run hook
 
-`godot` komutu bitince QA pending işaretlenir; ajan durunca checklist
-follow-up ile devam eder. Temiz çıkışta state’e `"done": true` yaz.
+`godot` bitince QA pending; ajan checklist follow-up ile devam eder.
+Temiz çıkışta `"done": true`. Kırmızı varken `"done": true` yazmak kural ihlali.
