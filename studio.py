@@ -46,12 +46,17 @@ from pathlib import Path
 import jsonschema
 import yaml
 
+# exec(open("studio.py").read()) ile koşulduğunda __file__ tanımsız (npm test böyle
+# çağırıyor); o durumda betik kendi dizininden koşuluyor demektir.
+STUDIO_DIZIN = Path(globals().get("__file__", "studio.py")).resolve().parent
+
+
 def _kok_ayikla(argv):
     """--kok <dizin>: stüdyoyu başka bir proje kökünde koştur. Tek kopya, çok proje.
     Varsayılan bu betiğin dizini. Bayrak argv'den ayıklanır ki diğer bayrakların
     argümanlarına karışmasın."""
     if "--kok" not in argv:
-        return Path(__file__).resolve().parent, argv
+        return STUDIO_DIZIN, argv
     i = argv.index("--kok")
     if i + 1 >= len(argv):
         sys.exit("\033[31m■ DUR:\033[0m --kok bir dizin ister.")
@@ -79,7 +84,7 @@ TOHUMLUK = [
 
 
 def _tohumla():
-    stüdyo = Path(__file__).resolve().parent
+    stüdyo = STUDIO_DIZIN
     if stüdyo == KOK:
         return
     for yol in TOHUMLUK:
@@ -110,7 +115,7 @@ except ModuleNotFoundError:  # Faz 4C'den önce yok; Faz 1–4A harness'siz koş
 # Tur promptları stüdyonun kendi .claude/commands'ında; proje kendi sürümünü koyarsa o kazanır.
 KOMUTLAR = KOK / ".claude" / "commands"
 if not KOMUTLAR.is_dir():
-    KOMUTLAR = Path(__file__).resolve().parent / ".claude" / "commands"
+    KOMUTLAR = STUDIO_DIZIN / ".claude" / "commands"
 RUNLOG = KOK / "runlog"
 DURUM = RUNLOG / "durum.json"
 MANIFEST = KOK / "assets" / "manifest.yaml"
