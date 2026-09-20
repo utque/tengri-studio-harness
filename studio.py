@@ -63,16 +63,37 @@ def _kok_ayikla(argv):
 
 KOK, ARGV = _kok_ayikla(sys.argv[1:])
 
-# harness.py stüdyo altyapısıdır (faz çıktısı DEĞİL) ama kendi konumundan kök hesaplar
-# (parents[2]), o yüzden stüdyodan import edilemez — yanlış projenin dosyalarını okur.
-# Eksikse projeye tohumlanır; sonrası projenin kendi kopyası, Faz 5'te değişebilir.
-_HARNESS = KOK / "assets" / "pipeline" / "harness.py"
-if not _HARNESS.exists():
-    _kaynak = Path(__file__).resolve().parent / "assets" / "pipeline" / "harness.py"
-    if _kaynak.exists():
-        _HARNESS.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(_kaynak, _HARNESS)
-        print(f"\033[33m   harness.py projeye tohumlandı:\033[0m {_HARNESS.relative_to(KOK)}")
+# Stüdyo altyapısı (faz çıktısı DEĞİL) projeye TOHUMLANIR: dosya stüdyoda durur,
+# projede yoksa kopyalanır, sonrası projenin kendi kopyasıdır (Faz 5/6'da
+# değişebilir). harness.py kendi konumundan kök hesapladığı (parents[2]) için
+# stüdyodan import edilemez; QA araçları da projeye göre yol çözer.
+TOHUMLUK = [
+    "assets/pipeline/harness.py",
+    "assets/pipeline/varlik_kural.py",  # varlık sınıfı ön/son koşulları (fal araçları import eder)
+    "tools/qa_kontrol_ortak.gd",        # jenerik UI kontrolleri
+    "tools/gorsel_diff.py",             # piksel diff + değişen bölge kutuları
+    "tools/puan_kiyas.py",              # kör puanlama + ölçüt çıpaları
+    "playtest-qa-checklist.md",         # QA döngü protokolü
+]
+
+
+def _tohumla():
+    stüdyo = Path(__file__).resolve().parent
+    if stüdyo == KOK:
+        return
+    for yol in TOHUMLUK:
+        hedef = KOK / yol
+        if hedef.exists():
+            continue
+        kaynak = stüdyo / yol
+        if not kaynak.exists():
+            continue
+        hedef.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(kaynak, hedef)
+        print(f"\033[33m   {Path(yol).name} projeye tohumlandı:\033[0m {yol}")
+
+
+_tohumla()
 sys.path.insert(0, str(KOK / "assets" / "pipeline"))
 try:
     import harness  # noqa: E402  — Faz 4C, pipeline ile paylaşılan kod

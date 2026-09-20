@@ -1,42 +1,21 @@
 ---
-description: Build/run sonrası sonsuz playtest QA döngüsü — tüm oyunlar
+description: Playtest QA — yalnız kullanıcı açıkça isterse; otomatik döngü kapalı
 alwaysApply: true
 ---
 
 # Playtest QA döngüsü
 
-Her oyun için kanonik liste: `tengri-studio/playtest-qa-checklist.md`
-(oyun kökünde de `playtest-qa-checklist.md`).
+## Otomatik KAPALI (stüdyo kararı 2026-09-09)
 
-## Ne zaman
+- `godot` build/run sonrası otomatik QA follow-up / sonsuz döngü **YOK**
+- Kill switch: `.cursor/state/qa-auto.json` → `"enabled": false`
+- Ajan kendiliğinden QA döngüsü başlatmaz; `qa-pending` yazmaz; stop follow-up göndermez
 
-- UI / HUD / menü değişikliği
-- `godot` ile build, run veya SS script
-- Kullanıcı “oyna / SS / düzelt / döngü” dediğinde
+## Ne zaman çalışır
 
-## Sonsuz döngü
+Yalnız kullanıcı **açıkça** dediğinde:
+- “playtest QA” / “QA döngüsü” / “checklist A–K” / “SS ile QA”
 
-1. Çalıştır (pencereli)
-2. Screenshot al → **Read ile görselleri incele** (zorunlu set: splash, menü, shop, HUD, seçim, inşa/üret, zafer, yenilgi, **fraksiyon/bayrak ayrımı**)
-3. Checklist **A–J her madde** (özellikle **B. Orantı**, **H. Kabuk**, **I. Oynanabilirlik**, **J. Denge/fraksiyon**)
-4. Kırmızı → düzelt → 1’e dön
-5. Hepsi yeşil → `done`; aksi halde erken bırakma
+O zaman checklist: `tengri-studio/playtest-qa-checklist.md` (veya oyun kökü `playtest-qa-checklist.md`).
 
-## Erken done yasak
-
-- “Yeterince iyi” / “çoğu yeşil” / “placeholder” ile `done: true` yazma
-- Headless yeşil ≠ checklist yeşil; ikisi de şart
-- Bilinen kaymış kale, hayalet menü, düşmansız demo = kırmızı; kapatma
-
-## Kaçırma (geçmiş ders)
-
-- İkon-first sonrası eski büyük `custom_minimum_size` / panel
-- Texture içinde gömülü boş buton şeritleri (ghost UI)
-- Bina atlasına gömülü arazi hex’i → “kale kaymış”
-- Yalnızca yürüyen adam senaryosu
-- **1 turda zafer** / aynı bayrak-renk / üretim kale altında görünmez
-
-## Build & run hook
-
-`godot` bitince QA pending; ajan checklist follow-up ile devam eder.
-Temiz çıkışta `"done": true`. Kırmızı varken `"done": true` yazmak kural ihlali.
+Yeniden otomatik açmak: `qa-auto.json` → `"enabled": true` **ve** kullanıcı onayı.

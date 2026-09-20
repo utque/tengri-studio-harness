@@ -1,33 +1,36 @@
 ---
-description: Oyun UI'sında metin son çare; her şey önce ikonlarla anlatılır
+description: UI'da ikon öncelikli; tek ikonla anlaşılmayan yerde kısa metin kalır
 alwaysApply: true
 ---
 
 # Icon-first UI
 
-Tengri Games stüdyosunda oyunlarda kullanıcıya görünen metin **çok az** olmalı.
-Her şey önce **ikon, sembol, renk ve animasyon** ile hallolur.
+Tengri Games stüdyosunda oyunlarda kullanıcıya görünen metin **az** olmalı.
+Önce **ikon, sembol, renk ve animasyon**; ama anlaşılırlık ikondan üstündür.
 
 ## Kurallar
 
-- HUD, menü, envanter, buton, durum, ödül, uyarı → ikon-first
-- Cümle, etiket, ipucu paneli, buton yazısı varsayılan çözüm değildir
-- Metin yalnızca ikonun yetersiz kaldığı yerde (yasal, ayar açıklaması, hikâye)
+- HUD, menü, envanter, buton, durum → ikon **öncelikli**, metin yasak değil
+- Evrensel eylemler yalnız ikon olabilir: Oyna ▶, Duraklat II, Ayarlar, Çıkış, Shop (coin)
+- **Sayfa başlıkları her zaman metin** (Zafer!, Yenildin!, Duraklatıldı, Ayarlar, Prestij, Mağaza, Bölümler…) — ★/✦/⏸ ile değiştirme
+- Tek ikonla **yanlış veya belirsiz** okunan yerde kısa etiket **zorunlu**
+  (kule/yapı adı, Yükselt, Sat, Dalga başlat, Evet/Hayır, işlem adı, hasar/menzil birimi, bölüm·zorluk)
+- Metni tooltip’e gömüp yüzü boş bırakma — hover şart değil
 - Görünen her metin `03-strings.yaml` üzerinden gelir; kodda metin uydurma
-- Yeni metin alanı açmadan önce sor: "bu ikonla çözülür mü?" — çözülüyorsa ekleme
+- Yeni alan: "bu ikon tek başına net mi?" — net değilse ikon + kısa etiket
 
-## Örnekler
+## Anti-örnek (aşırı icon-only)
 
 ```gdscript
-# ❌ BAD — butona açıklayıcı yazı
-btn_attack.text = "Saldır"
+# ❌ BAD — yükseltmeyi yalnız ↑ / altın sayısı; "ne yapıyor?" belirsiz
+yukselt_btn.text = str(maliyet)
 
-# ✅ GOOD — ikon + kısa görsel geri bildirim
-btn_attack.icon = Assets.UI_ICON_ATTACK
-btn_attack.text = ""
+# ✅ GOOD — ikon + kısa etiket + sayı
+yukselt_btn.icon = Assets.ICO_YUKSELTME
+yukselt_btn.text = "%s %d" % [tr(Strings.HUD_YUKSELT), maliyet]
 ```
 
 ```
-# ❌ BAD — HUD'da "Can: 3"
-# ✅ GOOD — 3 kalp ikonu
+# ❌ BAD — kule kartında yalnız sprite, ad yok
+# ✅ GOOD — sprite + "Ok" / "Ateş" kısa ad + fiyat
 ```

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""godot build/run sonrası QA pending işaretle."""
+"""godot build/run sonrası QA pending işaretle.
+
+Otomatik döngü KAPALI: `.cursor/state/qa-auto.json` → enabled:false
+(yeniden açmak için enabled:true + kullanıcı açıkça QA ister).
+"""
 from __future__ import annotations
 
 import json
@@ -10,15 +14,29 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 STATE = ROOT / ".cursor" / "state" / "qa-pending.json"
+AUTO = ROOT / ".cursor" / "state" / "qa-auto.json"
+
+
+def _auto_acik() -> bool:
+	# Varsayılan: kapalı. Yalnız açıkça enabled:true iken tetikle.
+	if not AUTO.exists():
+		return False
+	try:
+		return bool(json.loads(AUTO.read_text(encoding="utf-8")).get("enabled"))
+	except Exception:
+		return False
+
 
 def _godot_kosu(cmd: str) -> bool:
-	# Tırnak içindeki "godot" (echo/JSON) sayılmaz; gerçek çağrı dışarıda olmalı.
 	dis = "".join(cmd.split("'")[i] for i in range(0, len(cmd.split("'")), 2))
 	dis = "".join(dis.split('"')[i] for i in range(0, len(dis.split('"')), 2))
 	return bool(re.search(r"(?:^|[\s;|&])godot\b", dis, re.I))
 
 
 def main() -> None:
+	if not _auto_acik():
+		print("{}")
+		return
 	try:
 		payload = json.load(sys.stdin)
 	except Exception:

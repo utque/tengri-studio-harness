@@ -39,7 +39,8 @@ npm test
 
 ## Playtest QA
 
-Build/run sonrası ajan `playtest-qa-checklist.md` ile sonsuz SS döngüsü koşar
+Build/run sonrası ajan `playtest-qa-checklist.md` A–K ile sonsuz SS döngüsü koşar
+(UI tasarımcı güzellik barı + eksik grafik için fal; erken `done` yasak)
 (ikon-first, orantı/şişmiş kutu, layout, feedback). Cursor workspace’te
 `.cursor/hooks.json` `godot` komutundan sonra bu döngüyü otomatik devam ettirir.
 

@@ -47,21 +47,36 @@ yalnızca **oyun tipi** ve **asset (varlık)** soruları gider.
    her sayısal iddia (URL ya da `tahmin`), `durus` yalnız oyun tipi/asset sorusu
    varsa neden+soru (yazılım sorusu yasak).
 
-9. **Icon-first UI — metin son çare.** Oyunlarda kullanıcıya görünen metin
-   çok az olmalı. HUD, menü, envanter, buton, durum, ödül, uyarı: hepsi önce
-   ikon, sembol, renk ve animasyonla anlatılır. Cümle, etiket, ipucu paneli
-   veya buton yazısı varsayılan çözüm değildir. Metin yalnızca ikonun
-   yetersiz kaldığı yerde (yasal metin, ayar açıklaması, hikâye satırı) ve
-   `03-strings.yaml` üzerinden girer. GDD, UI spec, strings ve kodda yeni bir
-   metin alanı açmadan önce "bu ikonla çözülür mü?" diye sor; çözülüyorsa
-   metin ekleme.
+9. **Icon-first UI — anlaşılırlık üstün.** Oyunlarda metin az olmalı; önce
+   ikon/sembol/renk. Ama tek ikon belirsizse kısa etiket zorunlu (kule adı,
+   Yükselt/Sat, dalga başlat, onay Evet/Hayır, hasar·menzil birimi,
+   bölüm·zorluk). Evrensel kabuk (Oyna/Ayarlar/Çıkış/Shop) yalnız ikon
+   olabilir. Metni tooltip'e gömüp yüzü boş bırakma. Her metin
+   `03-strings.yaml` üzerinden. "Bu ikon tek başına net mi?" — değilse
+   ikon + kısa etiket.
 
-10. **Playtest QA döngüsü — build/run sonrası zorunlu.** Her oyun build veya
-    run edildiğinde `playtest-qa-checklist.md` maddeleri screenshot ile
-    kontrol edilir; kırmızı kalan her şey düzeltilir; temizlenene kadar
-    çalıştır→SS→checklist→düzelt tekrarı sürer. Özellikle orantı: ikon-first
-    sonrası şişmiş panel/düğme (`custom_minimum_size`) kabul edilmez.
-    Liste: stüdyoda `playtest-qa-checklist.md` (oyun kökünde aynı dosya).
+10. **Playtest QA döngüsü — build/run sonrası zorunlu; erken bitirme yasak.**
+    Her oyun build/run sonrası `playtest-qa-checklist.md` **A–K** maddeleri
+    screenshot + `Read` ile kontrol edilir. Fonksiyonel yeşil yetmez: **K. UI
+    tasarımcı / güzellik barı** (“ajansa koyarım?”) geçmeden `done` yazılmaz.
+    Orantı/boyut, hayalet UI, eksik ikon kırmızı sayılır. Eksik veya çirkin
+    grafik → oyundaki fal aracı (`fal_uret.py` / `fal_sanat.py --kurulum`) ile
+    tamamlanır; ColorRect/emoji/placeholder ile yeşile çekmek yasak.
+    Döngü: kapsam yaz→makine kontrolü→çalıştır→SS→diff→checklist→kör puan→
+    düzelt/fal→tekrar. Liste: stüdyoda `playtest-qa-checklist.md` (oyun
+    kökünde aynı dosya).
+
+    **Ölçülebilen ölçülür, göze bırakılmaz.** Göze bakmadan önce
+    `bash tests/run.sh` ve `bash tools/qa_kontrol.sh` yeşil olmalı. Çekim
+    `--fixed-fps 60` ile alınır (yoksa tween fazı kayar, her tur "değişmiş"
+    görünür). Tasarım değişikliği `tools/puan_kiyas.py` ile **kör** puanlanır;
+    puan düşerse geri alınır ve gerekçe koda yorum olarak düşülür. Eşiği
+    kırmızıyı yeşile çekmek için değiştirmek testi gevşetmektir.
+
+    **Çıkış ölçütü — üçü birden:** (a) makine kontrolleri tümü yeşil,
+    (b) üst üste **2 tur** ciddi bulgu yok, (c) `tools/gorsel_diff.py`
+    yalnız kapsamda yazılan bölgelerin değiştiğini gösteriyor. Üçü sağlanmadan
+    `qa-pending.json`'a `{"done": true}` yazılmaz.
 
 ## Öz-yargı (studio)
 
@@ -71,8 +86,9 @@ Oynanır demo (`playtest-1`) hazır olana kadar bu döngüyle ilerlenir.
 
 ## DUR koşulları — bunlardan biri olursa çalışmayı bitir ve rapor yaz
 
-- Aynı testi 3 kez düzeltmeye çalıştın ve hâlâ kırmızı
-- Aynı varlık 3. revizyonu aldı
+- Aynı **teknik** testi 5 kez düzeltmeye çalıştın ve hâlâ kırmızı
+  (UI/güzellik/orantı/fal maddelerinde bu erken duruş yok — polish devam)
+- Aynı varlık 3. revizyonu aldı (fal sonrası stil hâlâ uyumsuzsa durus)
 - Tasarım dokümanında (`03-gdd.md`), metin tablosunda (`03-strings.yaml`) veya
   varlık manifestosunda bir değişiklik gerekiyor
 - Manifest'te `onaylı` olmayan bir varlığa referans vermen gerekiyor
@@ -107,8 +123,9 @@ Oynanır demo (`playtest-1`) hazır olana kadar bu döngüyle ilerlenir.
 - Dosya yolu string'i yazma. Varlıklara `Assets.*`, metinlere `Strings.*`
   sabitleriyle eriş. Sabit yoksa varlık yok demektir: DUR ve sor.
 - Metin uydurma. Kullanıcıya görünen her metin `03-strings.yaml`'dan gelir.
-- UI'da Label/RichText ile açıklama yazma. Buton, slot, durum: `Assets.*`
-  ikon + kısa geri bildirim (renk, pulse, sfx). Strings yalnızca istisna.
+- UI'da uzun cümle paneli yazma. Evrensel kabuk: `Assets.*` ikon.
+  Belirsiz eylem/istatistik: ikon + `Strings.*` kısa etiket. Tooltip yalnız
+  ek açıklama; ana anlamı tooltip'e gömme.
 - Testi önce yaz, kırmızı olduğunu gör, sonra kodu yaz.
 - Yeni bağımlılık ekleme. Gerekliyse DUR ve sor.
 

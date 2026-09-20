@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Ajan durunca QA pending ise checklist follow-up gönder."""
+"""Ajan durunca QA pending ise checklist follow-up gönder.
+
+Otomatik döngü KAPALI: `.cursor/state/qa-auto.json` → enabled:false
+"""
 from __future__ import annotations
 
 import json
@@ -9,10 +12,29 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 STATE = ROOT / ".cursor" / "state" / "qa-pending.json"
-MAX_LOOPS = 25
+AUTO = ROOT / ".cursor" / "state" / "qa-auto.json"
+MAX_LOOPS = 40
+
+
+def _auto_acik() -> bool:
+	if not AUTO.exists():
+		return False
+	try:
+		return bool(json.loads(AUTO.read_text(encoding="utf-8")).get("enabled"))
+	except Exception:
+		return False
 
 
 def main() -> None:
+	if not _auto_acik():
+		# Pending kalıntısını temizle; otomatik follow-up yok.
+		if STATE.exists():
+			try:
+				STATE.unlink()
+			except OSError:
+				pass
+		print("{}")
+		return
 	try:
 		payload = json.load(sys.stdin)
 	except Exception:
@@ -52,7 +74,8 @@ def main() -> None:
 				{
 					"followup_message": (
 						"PLAYTEST QA: döngü limiti aşıldı. "
-						"Kalan kırmızıları `runlog/` altına duruş olarak yaz ve dur."
+						"Kalan kırmızıları (özellikle K. UI tasarımcı / eksik fal grafikleri) "
+						"`runlog/` altına duruş olarak yaz — 'yeterince iyi' diye done yazma."
 					)
 				},
 				ensure_ascii=False,
@@ -64,12 +87,16 @@ def main() -> None:
 			{
 				"followup_message": (
 					"PLAYTEST QA DÖNGÜSÜ (otomatik, tur %d/%d): "
-					"Oyun az önce build/run edildi. "
-					"`playtest-qa-checklist.md` maddelerini screenshot ile tek tek kontrol et "
-					"(A metin, B orantı/şişmiş kutu, C layout, D hiyerarşi, E feedback, F oynanış, G test). "
-					"Kırmızıları düzelt → oyunu tekrar çalıştır → SS → tekrar kontrol. "
-					"Hiç sorun kalmadıysa `.cursor/state/qa-pending.json` dosyasına "
-					'`{"done": true}` yazıp bitir. Erken bırakma.'
+					"Oyun az önce build/run edildi. Erken bitirme. "
+					"`playtest-qa-checklist.md` A–K maddelerini screenshot ile tek tek kontrol et. "
+					"Her SS'yi Read ile aç — UI tasarımcı bakış açısı: orantı/boyut, hiyerarşi, "
+					"stil (04-style), hayalet UI, eksik ikon. "
+					"Eksik/çirkin grafik varsa fal ile üret (fal_uret.py / fal_sanat.py --kurulum), "
+					"göster, kur, tekrar SS. "
+					"'Çalışıyor ama çirkin/placeholder' = kırmızı. "
+					"Kırmızıları düzelt → run → SS → tekrar. "
+					"A–K + güzellik barı ('ajansa koyarım') yeşil olmadan "
+					"`.cursor/state/qa-pending.json` içine done yazma."
 				)
 				% (loops, MAX_LOOPS)
 			},
