@@ -70,6 +70,7 @@ KOK, ARGV = _kok_ayikla(sys.argv[1:])
 TOHUMLUK = [
     "assets/pipeline/harness.py",
     "assets/pipeline/varlik_kural.py",  # varlık sınıfı ön/son koşulları (fal araçları import eder)
+    "assets/pipeline/palet_kenetle.py", # palet dışı pikselleri palete kenetler (kilitli palet)
     "tools/qa_kontrol_ortak.gd",        # jenerik UI kontrolleri
     "tools/gorsel_diff.py",             # piksel diff + değişen bölge kutuları
     "tools/puan_kiyas.py",              # kör puanlama + ölçüt çıpaları
