@@ -173,7 +173,10 @@ SISTEM_EK = ("Türkçe yaz ve Türkçe karakterleri kullan (ş ı ğ ü ö ç İ
              "önerisi, kutlama yazma. Kapsam dışı dosyaya dokunma. Bitince yalnızca şemadaki JSON "
              "raporu döndür: adim = görevdeki adım adı; yazilan = dokunduğun HER dosyanın repo köküne "
              "göre yolu (eksik ya da fazla bildirirsen tur reddedilir); kanit = çalıştırdığın her "
-             "komut ve gerçek çıkış kodu; iddialar = yazdığın her sayısal iddia, kaynak URL'i ya da "
+             "komut ve gerçek çıkış kodu — DİKKAT: studio bu komutları TEKRAR KOŞAR, o yüzden "
+             "yalnız gerçekten yeniden koşulabilir tek shell komutu yaz (boru/zincir/yönlendirme "
+             "yok); dosya düzenlemesi komut DEĞİLDİR, o `yazilan`a girer, kanit'e yazma; "
+             "iddialar = yazdığın her sayısal iddia, kaynak URL'i ya da "
              "'tahmin'; durus = yalnız oyun tipi veya varlık (asset) kararı gerekiyorsa neden+soru, "
              "yazılım/kod/test/layout sorusu SORMA — kendin çöz veya revizyon notu bırak; yoksa null.")
 
@@ -652,8 +655,15 @@ def dg_tech(_):
                   "Pilotta bu Faz 6'da değişti ve 3 dilim + 14 test iddiası kırdı.")
     if not re.search(r"karo\D{0,40}\d{2,4}\s*(px|piksel)", kucuk):
         raise Dur("02-tech.md: karo boyutu piksel olarak yazılmamış (ör. 'Karo: 96 px').")
-    if not re.search(r"ölçek modu\s*[:=]", kucuk):
-        raise Dur("02-tech.md: 'Ölçek modu:' satırı yok (tam sayı / kesirli / kapalı).")
+    # Kardeş kontroller (çözünürlük, karo) markdown tablosunu kabul ediyor; bu etmiyordu
+    # ve "Ölçek modu" tabloda yazılmış dokümanı düşürüyordu. Tablo da geçerli, ama artık
+    # DEĞERİ de aranıyor: sadece başlığı yazmak yetmez.
+    olcek = re.search(r"ölçek\s*modu\W{0,6}[:=|]([^\n]*)", kucuk)   # \W: markdown ** ve tablo |
+    if not olcek:
+        raise Dur("02-tech.md: 'Ölçek modu' satırı yok (tam sayı / kesirli / kapalı).")
+    if not re.search(r"tam sayı|kesirli|kapalı|integer|canvas_items|viewport|disabled", olcek.group(1)):
+        raise Dur("02-tech.md: 'Ölçek modu' yazılmış ama değeri yok "
+                  "(tam sayı / kesirli / kapalı ya da Godot stretch modu).")
     kanit = oku("runlog/faz2-kanit.md").lower()
     if "çıkış kodu" not in kanit and "exit" not in kanit:
         raise Dur("runlog/faz2-kanit.md: test/build çıkış kodu yazılmamış — kanıt yok.")
