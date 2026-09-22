@@ -177,7 +177,11 @@ SISTEM_EK = ("Türkçe yaz ve Türkçe karakterleri kullan (ş ı ğ ü ö ç İ
              "yalnız gerçekten yeniden koşulabilir tek shell komutu yaz (boru/zincir/yönlendirme "
              "yok); dosya düzenlemesi komut DEĞİLDİR, o `yazilan`a girer, kanit'e yazma; "
              "iddialar = yazdığın her sayısal iddia, kaynak URL'i ya da "
-             "'tahmin'; durus = yalnız oyun tipi veya varlık (asset) kararı gerekiyorsa neden+soru, "
+             "'tahmin'; ÖNCELİK: 00-charter.md diğer tüm dokümanların ÜSTÜNDEDİR — çeliştiklerinde "
+             "charter kazanır, charter değiştirilmez ve 'charter güncellensin' bir seçenek değildir; "
+             "varlık bütçesinde sapma marjı yalnız yapım sırasında KEŞFEDİLEN kalemler içindir, "
+             "bilinen bir eksik marjdan değil KAPSAMDAN karşılanır (fazla belirtimi kes, içeriği değil); "
+             "durus = yalnız oyun tipi veya varlık (asset) kararı gerekiyorsa neden+soru, "
              "yazılım/kod/test/layout sorusu SORMA — kendin çöz veya revizyon notu bırak; yoksa null.")
 
 
