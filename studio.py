@@ -1624,6 +1624,13 @@ def dogrula_ve_sonrasi(adim):
     return uyari
 
 
+def studio_defteri(yol):
+    """Studio'nun KENDİ yazdığı defter dosyaları: durum.json (maliyet/not) ve adım log'u.
+    rapor_denetle maliyeti adımın ortasında durum.json'a yazıyor; taban görüntü adımın
+    başında alındığı için bu yazım sonraki denemede 'ajan yazdı' diye faturalanıyordu."""
+    return yol == "runlog/durum.json" or (yol.startswith("runlog/") and yol.endswith(".log"))
+
+
 def adimi_kosun(adim, ek=""):
     taban = ek  # kullanıcı notları; tekrar denemelerde kaybolmaz, geri bildirim üstüne eklenir
     # Taban görüntü adımın BAŞINDA alınır: tekrar denemelerde "değişen" = adım boyunca değişen her şey.
@@ -1631,6 +1638,14 @@ def adimi_kosun(adim, ek=""):
     once_g, once_m, once_d = anlik_goruntu(), manifest_alanlari(), duruslar()
     for deneme in range(1, adim.deneme + 1):
         once_y, once_git = yetki_goruntusu(), git_goruntusu()
+        # Defteri ajan BAŞLAMADAN önceki hâline sabitle. Ajan koruması kalkmıyor:
+        # karşılaştırma hâlâ ajan-öncesi ↔ ajan-sonrası, ajan yazarsa yine yakalanır.
+        simdi_d = anlik_goruntu()
+        for y in [y for y in once_g if studio_defteri(y)] + [y for y in simdi_d if studio_defteri(y)]:
+            if y in simdi_d:
+                once_g[y] = simdi_d[y]
+            else:
+                once_g.pop(y, None)
         try:
             rapor = ajani_calistir(adim, "\n".join(x for x in (ek, f"adim: {adim.ad}") if x))
         except RaporYok as e:
@@ -1659,7 +1674,7 @@ def adimi_kosun(adim, ek=""):
             # Studio'nun kendi yazdıkları (adım log'u, durum.json) sonraki denemede "değişen" sayılmasın.
             simdi = anlik_goruntu()
             for y in simdi:
-                if y == "runlog/durum.json" or (y.startswith("runlog/") and y.endswith(".log")):
+                if studio_defteri(y):
                     once_g[y] = simdi[y]
             print(f"\n\033[33m↻ doğrulama düştü, tekrar {deneme + 1}/{adim.deneme}:\033[0m {e}")
             ek = (f"{taban}\n\nÖNCEKİ DENEME REDDEDİLDİ: {e}\nSadece bunu düzelt, baştan yazma. "
