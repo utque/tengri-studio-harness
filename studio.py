@@ -1636,6 +1636,12 @@ def adimi_kosun(adim, ek=""):
     # Taban görüntü adımın BAŞINDA alınır: tekrar denemelerde "değişen" = adım boyunca değişen her şey.
     # (Deneme başına alınsaydı, ikinci denemede hiçbir şey yazmayan ve boş rapor veren ajan kapıdan geçerdi.)
     once_g, once_m, once_d = anlik_goruntu(), manifest_alanlari(), duruslar()
+    # Önceki denemelerde dala girmiş dosyalar. Taban görüntü adımın BAŞINDA alındığı için
+    # 2. denemenin "değişen" listesi 1. denemenin yazdıklarını da içeriyor; ajan onları
+    # bilemez ve bildiremez. rapor_denetle'nin `onceki` kaçış kapısı tam bunun için yazılmış
+    # ama yalnız worktree'li yolda (dilim) bağlanmıştı — düz yolda her tekrar denemesi
+    # kaçınılmaz olarak "bildirilen ≠ ölçülen" ile düşüyordu.
+    onceki_yazim = set()
     for deneme in range(1, adim.deneme + 1):
         once_y, once_git = yetki_goruntusu(), git_goruntusu()
         # Defteri ajan BAŞLAMADAN önceki hâline sabitle. Ajan koruması kalkmıyor:
@@ -1651,6 +1657,7 @@ def adimi_kosun(adim, ek=""):
         except RaporYok as e:
             if deneme == adim.deneme:
                 raise
+            onceki_yazim |= set(fark(once_g, anlik_goruntu())[0])
             print(f"\n\033[33m↻ rapor yok, tekrar {deneme + 1}/{adim.deneme}:\033[0m {e}")
             ek = (f"{taban}\n\nÖNCEKİ DENEME: dosyaları yazdın ama şemalı JSON raporu DÖNDÜRMEDİN. Mevcut "
                   "dosyaları koru, eksik kalan işi tamamla ve bitişte yalnızca JSON raporu döndür.").strip()
@@ -1664,7 +1671,7 @@ def adimi_kosun(adim, ek=""):
         onay_nobeti(adim.ad, adim.komut, once_m, manifest_alanlari())
         durus_bas(adim.ad, duruslar() - once_d)
         try:
-            uyari = rapor_denetle(adim, rapor, degisen)
+            uyari = rapor_denetle(adim, rapor, degisen, onceki=onceki_yazim)
             return degisen, uyari + dogrula_ve_sonrasi(adim)
         except Sor:
             raise
@@ -1672,6 +1679,7 @@ def adimi_kosun(adim, ek=""):
             if deneme == adim.deneme:
                 raise Dur(f"{adim.ad}: {adim.deneme} denemede de doğrulamadan geçmedi → {e}")
             # Studio'nun kendi yazdıkları (adım log'u, durum.json) sonraki denemede "değişen" sayılmasın.
+            onceki_yazim |= set(degisen)   # bu denemede dala girenler bir daha sorulmaz
             simdi = anlik_goruntu()
             for y in simdi:
                 if studio_defteri(y):
