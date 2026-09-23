@@ -73,6 +73,8 @@ KOK, ARGV = _kok_ayikla(sys.argv[1:])
 # değişebilir). harness.py kendi konumundan kök hesapladığı (parents[2]) için
 # stüdyodan import edilemez; QA araçları da projeye göre yol çözer.
 TOHUMLUK = [
+    "CLAUDE.md",                        # ANAYASA — ajanın her turda okuduğu kural seti.
+                                        # Listede yoktu: Kilim Works'te 24 tur anayasasız koştu.
     "assets/pipeline/harness.py",
     "assets/pipeline/varlik_kural.py",  # varlık sınıfı ön/son koşulları (fal araçları import eder)
     "assets/pipeline/palet_kenetle.py", # palet dışı pikselleri palete kenetler (kilitli palet)
