@@ -1057,7 +1057,8 @@ def ai_beyani():
     """Steam AI beyanı — manifest'in kaynak alanından, oyuncunun tükettiği kategoriler."""
     tuketilen = {"chr": "karakter görselleri", "env": "çevre görselleri", "fx": "efekt görselleri",
                  "ui": "arayüz görselleri", "ico": "ikonlar", "sfx": "ses efektleri",
-                 "mus": "müzik", "fnt": "font", "mkt": "mağaza görselleri (pazarlama)"}
+                 "mus": "müzik", "fnt": "font", "mkt": "mağaza görselleri (pazarlama)",
+                 "vid": "hikâye videoları", "ses": "seslendirme (anlatım)"}
     grup = {}
     for k in manifest_kayitlari():
         kat = k["id"].split("_")[0]
